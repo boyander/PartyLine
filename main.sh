@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # Marc Pomar Torres - Serveis i Aplicacions Telemˆtiques
 # Projecte Final
@@ -11,15 +11,14 @@ export PATH
 port=8888
 destination=224.1.0.1
 interface="en1"
-protocol="_partyline._udp"
-domain="local"
-instance="sat-partyline"
 codec="cvsd"
 samplerate="8k"
 buffSizeBytes="1024"
-TXT_RECORD="codec=${codec}"
 recfifo="/tmp/recSat.tmp"
 playfifo="/tmp/playSat.tmp"
+
+#Handle script
+handle_script="./handle_cnx.sh"
 
 
 #Origin IP ADDRESS
@@ -31,20 +30,31 @@ function setIP_ADDR()
 	elif [ $host_type == "Darwin" ]; then
 		ip_origin=$(ipconfig getifaddr $interface)
 	fi
-	echo "Origin IP is $ip_origin"
 }
+
+#Register local Service with Apple Bonjour if possible
+function registerBonjourService(){
+	#Register local Service with Apple Bonjour (only OSX)
+	if [ "$(uname -s)" == "Darwin" ]; then
+		domain="local"
+		instance="sat-partyline"
+		protocol="_partyline._udp"
+		TXT_RECORD="machine=$(uname -n),codec=${codec}"
+		mDNS -R $instance $protocol $domain $port $TXT_RECORD > dnsLog.txt &
+		dnsPid=$!
+		echo "Bonjour Service Registered (mDNS pid -> ${dnsPid})"
+	fi
+}
+
 
 #Start Service Routine
 function startRecordingService()
 {
-	#Register local Service with Apple Bonjour
-	mDNS -R $instance $protocol $domain $port $TXT_RECORD > dnsLog.txt &
-	dnsPid=$!
-	echo "Service Registered (mDNS pid -> ${dnsPid})"
+	#Try to register service
+	registerBonjourService
 	
 	#Create recording fifo
 	rm -f $recfifo
-
 	mkfifo $recfifo
 	
 	#Configure SOX audio options
@@ -65,12 +75,13 @@ function startPlayIncoming(){
 	mkfifo $playfifo
 	
 	#Read local network multicast
-	socat -u UDP-RECV:8888,ip-add-membership=224.1.0.1:$ip_origin PIPE:$playfifo &	 
+	#socat -u UDP-RECVFROM:8888,ip-add-membership=224.1.0.1:$ip_origin,ip-pktinfo,fork SYSTEM:$handle_script PIPE:$playfifo &	 
+	socat -u UDP-RECVFROM:8888,ip-add-membership=224.1.0.1:$ip_origin,ip-pktinfo,fork SYSTEM:"$handle_script"
 	rcvPid=$!
 	
-	playOptions="-V -t $codec -c 1 -r $samplerate --buffer $buffSizeBytes"
-	play $playOptions $playfifo &
-	playPid=$!
+	#playOptions="-V -t $codec -c 1 -r $samplerate --buffer $buffSizeBytes"
+	#play $playOptions $playfifo &
+	#playPid=$!
 }
 
 #Stop Service routine
@@ -106,5 +117,5 @@ echo "Service started -> Play[${playPid}], Rec[${recPid}]"
 # On SIGTERM stop PartyLine Service
 trap 'stopService' TERM
 
-#Wait until exit
+#Wait on exit
 wait

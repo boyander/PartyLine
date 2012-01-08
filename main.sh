@@ -69,19 +69,18 @@ function startRecordingService()
 	sendPid=$!
 }
 
-function startPlayIncoming(){
-	#Create playfifo
-	rm -f $playfifo
-	mkfifo $playfifo
-	
+function listenClients(){
 	#Read local network multicast
 	#socat -u UDP-RECVFROM:8888,ip-add-membership=224.1.0.1:$ip_origin,ip-pktinfo,fork SYSTEM:$handle_script PIPE:$playfifo &	 
-	socat -u UDP-RECVFROM:8888,ip-add-membership=224.1.0.1:$ip_origin,ip-pktinfo,fork SYSTEM:"$handle_script"
+	socat -u UDP-RECVFROM:8888,ip-add-membership=224.1.0.1:$ip_origin,ip-pktinfo,fork SYSTEM:"$handle_script" &
 	rcvPid=$!
-	
-	#playOptions="-V -t $codec -c 1 -r $samplerate --buffer $buffSizeBytes"
-	#play $playOptions $playfifo &
-	#playPid=$!
+}
+
+function startPlayIncoming(){
+	playOptions="-V -t $codec -c 1 -r $samplerate"
+	echo $fifoname
+	cat $1 | play $playOptions - &
+	playPid=$!
 }
 
 #Stop Service routine
@@ -100,6 +99,9 @@ function stopService()
 	kill -9 $sendPid
 	kill -9 $rcvPid
 	
+	#Remove all fifos
+	rm -f /tmp/partyline_peer_*
+	
 	#Kill script ;)
 	exit 0
 }
@@ -108,14 +110,25 @@ function stopService()
 setIP_ADDR
 
 #Start PartyLine Service
-startRecordingService
-startPlayIncoming
+#startRecordingService
+#startPlayIncoming
+listenClients
 
 echo "Service started -> Play[${playPid}], Rec[${recPid}]"
 
 #Stop Service on Exit
 # On SIGTERM stop PartyLine Service
 trap 'stopService' TERM
+
+while [ ! -s /tmp/partyline_peer_192_168_1_135 ]
+  do
+	sleep 1
+	printf ".*" 
+done
+sleep 1
+startPlayIncoming /tmp/partyline_peer_192_168_1_135
+
+
 
 #Wait on exit
 wait

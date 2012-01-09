@@ -13,12 +13,12 @@ client_name=${SOCAT_PEERADDR//./_}
 fifoname="/tmp/partyline_peer_$client_name"
 
 #Create fifo if not exists
-if [ ! -e $fifo_name ]; then
+if [ ! -s $fifo_name ]; then
 	echo "Creating fifo for client $SOCAT_PEERADDR ....does not exist!"
 	mkfifo $fifoname	
 fi
 
 #Read incoming packet
-dd of=$fifoname conv=notrunc
+dd of=$fifoname conv=notrunc 
 
 

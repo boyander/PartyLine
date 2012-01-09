@@ -77,9 +77,9 @@ function listenClients(){
 }
 
 function startPlayIncoming(){
-	playOptions="-V -t $codec -c 1 -r $samplerate"
+	playOptions="-V -t $codec -c 1 -r $samplerate --buffer $buffSizeBytes "
 	echo $fifoname
-	cat $1 | play $playOptions - &
+	while true; do cat $1 ;done | play $playOptions - &
 	playPid=$!
 }
 
@@ -120,13 +120,14 @@ echo "Service started -> Play[${playPid}], Rec[${recPid}]"
 # On SIGTERM stop PartyLine Service
 trap 'stopService' TERM
 
-while [ ! -s /tmp/partyline_peer_192_168_1_135 ]
+while [ ! -s /tmp/partyline_peer_192_168_1_109 ]
   do
 	sleep 1
 	printf ".*" 
 done
 sleep 1
-startPlayIncoming /tmp/partyline_peer_192_168_1_135
+startPlayIncoming /tmp/partyline_peer_192_168_1_109
+echo "Free Loop"
 
 
 

@@ -3,7 +3,7 @@ PartyLine Bash Implementation using SoX & Socat
 
 Requirments
 -----------
-  - SoX v14.3.2
+	- SoX v14.3.2
 	- Socat v1.7.2.0
 
 

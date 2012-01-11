@@ -9,7 +9,7 @@ Requirments
 
 Scheme of implementation
 ------------------------
-<img alt="PicSciP Demo Video" src="https://github.com/mattdipasquale/PicSciP/raw/master/screenshot.png"/>
+<img alt="PicSciP Demo Video" src="https://raw.github.com/boyander/PartyLine/master/images/esquema.png"/>
 
 L'script conté dues parts, client i servidor. El servei del client rebrà els streams de 
 àudio que tinguin com a destí el grup multicast i multiplexará cada

@@ -1,6 +1,7 @@
 PartyLine Bash Implementation using SoX & Socat 
 ===============================================
 
+
 Requirments
 -----------
 	- SoX v14.3.2
@@ -23,6 +24,6 @@ multicast.
 
 Contributors
 ------------
-* [Marc Pomar Torres]
+* [Marc Pomar Torres] - boyander@gmail.com
 
 [Marc Pomar Torres]: http://bmat.com/company/index.php

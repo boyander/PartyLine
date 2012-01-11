@@ -77,8 +77,7 @@ function listenClients(){
 }
 
 function startPlayIncoming(){
-	playOptions="-V -t $codec -c 1 -r $samplerate "
-	echo $fifoname
+	playOptions="-t $codec -c1 -r $samplerate"
 	#while true; do cat $1; done | play $playOptions $1 &
 	play $playOptions $1 &
 	playPid=$!
@@ -102,10 +101,38 @@ function stopService()
 	
 	#Remove all fifos
 	rm -f /tmp/partyline_peer_*
-	
+		
 	#Kill script ;)
 	exit 0
 }
+
+# http://fvue.nl/wiki/Bash:_Check_if_array_element_exists
+# Check if a value exists in an array
+# @param $1 mixed  Needle  
+# @param $2 array  Haystack
+# @return  Success (0) if value exists, Failure (1) otherwise
+# Usage: in_array "$needle" "${haystack[@]}"
+# See: http://fvue.nl/wiki/Bash:_Check_if_array_element_exists
+in_array() {
+    local hay needle=$1
+    shift
+    for hay; do
+        [[ $hay == $needle ]] && return 0
+    done
+    return 1
+}
+
+function last_modification()
+{
+	host_type=$( uname -s )
+	if [ $host_type == "Linux" ]; then
+		m_time=$(stat -c %Y $1)
+	elif [ $host_type == "Darwin" ]; then
+		m_time=$(stat -f '%m' $1)
+	fi
+	echo $m_time
+}
+
 
 #Set origin IP ADRESS
 setIP_ADDR
@@ -124,17 +151,42 @@ trap 'stopService' TERM
 
 
 #Recive Test
-testfifo=/tmp/partyline_peer_192_168_1_109
-while [[ ! -p $testfifo ]]
-  do
+#testfifo=/tmp/partyline_peer_192_168_1_109
+#while [[ ! -p $testfifo ]]
+#  do
+#	sleep 1
+#	printf ".*" 
+#done
+#sleep 1
+#startPlayIncoming $testfifo
+#echo "Client $testfifo connected!"
+
+echo "To exit press Ctrl+C"
+
+#Main Listen loop
+IFS=$'\n'
+while true; do
+	echo "List of clients:"
+	echo ${clients[@]}
+	
+	#Find all active Pipes and update client list
+	for f in $( ls /tmp/partyline_peer_* 2>/dev/null); do
+		#Check for new clients
+		if [ "$(in_array $f "${clients[@]}" && echo yes || echo no)" == "no" ]; then
+			#Append client to array
+			clients=( "${clients[@]}" $f )
+			echo "New Client $f on PlayList!"
+			#Start play incoming audio stream
+			startPlayIncoming $f
+		else
+			#Normal update time was 2-3 seconds, we set a limit of 5 seconds for disconect
+			s_old=$( expr $(date +%s) - $(last_modification $f) )
+			s_limit=5
+			if [ $s_old -gt $s_limit ]; then
+				echo "Client $f disconnected!"
+			fi
+		fi
+	done
 	sleep 1
-	printf ".*" 
 done
-sleep 1
-startPlayIncoming $testfifo
-echo "Client $testfifo connected!"
 
-
-
-#Wait on exit
-wait

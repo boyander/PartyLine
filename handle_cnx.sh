@@ -7,7 +7,6 @@ fifoname="/tmp/partyline_peer_$client_name"
 
 #Create fifo if not exists
 if [[ ! -p "$fifoname" ]]; then
-	echo "New client,"
 	echo "New client, saving new stream on named pipe $SOCAT_PEERADDR..."
 	mkfifo $fifoname
 fi
